@@ -11,6 +11,15 @@ class QuickAutomationMenu extends StatefulWidget {
     required this.agentService,
   });
 
+  static void showQuickMenu(BuildContext context, BrowserAgentService agentService) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => _QuickMenuModal(agentService: agentService),
+    );
+  }
+
   @override
   State<QuickAutomationMenu> createState() => _QuickAutomationMenuState();
 }
@@ -48,6 +57,11 @@ class _QuickAutomationMenuState extends State<QuickAutomationMenu>
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(); // This widget doesn't need a visible UI
   }
 
   void showQuickMenu(BuildContext context) {
@@ -365,6 +379,332 @@ class AutomationTemplate {
   AutomationTemplate(this.title, this.description, this.command, this.icon);
 }
 
+class _QuickMenuModal extends StatefulWidget {
+  final BrowserAgentService agentService;
+
+  const _QuickMenuModal({
+    required this.agentService,
+  });
+
+  @override
+  State<_QuickMenuModal> createState() => _QuickMenuModalState();
+}
+
+class _QuickMenuModalState extends State<_QuickMenuModal>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(
+      begin: 0.8,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutBack,
+    ));
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+    ));
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: ScaleTransition(
+        scale: _scaleAnimation,
+        child: Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.8,
+          ),
+          decoration: const BoxDecoration(
+            color: Color(0xFFF4F3F0),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle
+                Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(top: 12, bottom: 20),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFC4C4C4),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+
+                // Header
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.flash_on,
+                        color: const Color(0xFF000000),
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Quick Automation',
+                        style: GoogleFonts.inter(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF000000),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Content
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        _buildCategory('🛍️ Shopping', [
+                          AutomationTemplate(
+                            'Price Comparison',
+                            'Compare prices across sites',
+                            'Search for iPhone 15 Pro on Amazon, Best Buy, and Apple.com and compare prices',
+                            Icons.compare_arrows,
+                          ),
+                          AutomationTemplate(
+                            'Deal Hunter',
+                            'Find the best deals',
+                            'Go to slickdeals.net and browse today\'s hottest deals',
+                            Icons.local_offer,
+                          ),
+                          AutomationTemplate(
+                            'Product Research',
+                            'Research product reviews',
+                            'Search for laptop reviews on YouTube and summarize the top 3 recommendations',
+                            Icons.search,
+                          ),
+                        ]),
+
+                        _buildCategory('📈 Finance', [
+                          AutomationTemplate(
+                            'Stock Analysis',
+                            'Check market performance',
+                            'Go to yahoo finance and analyze AAPL stock performance over the last 30 days',
+                            Icons.trending_up,
+                          ),
+                          AutomationTemplate(
+                            'Crypto Tracker',
+                            'Monitor cryptocurrency',
+                            'Navigate to coinbase.com and check Bitcoin and Ethereum prices',
+                            Icons.currency_bitcoin,
+                          ),
+                          AutomationTemplate(
+                            'News Summary',
+                            'Get financial news',
+                            'Visit bloomberg.com and summarize top 3 financial news stories',
+                            Icons.article,
+                          ),
+                        ]),
+
+                        _buildCategory('🎯 Productivity', [
+                          AutomationTemplate(
+                            'Email Check',
+                            'Quick email overview',
+                            'Open gmail.com and check for urgent emails from the last 24 hours',
+                            Icons.email,
+                          ),
+                          AutomationTemplate(
+                            'Calendar Review',
+                            'Check today\'s schedule',
+                            'Navigate to google calendar and review today\'s appointments',
+                            Icons.calendar_today,
+                          ),
+                          AutomationTemplate(
+                            'Weather Update',
+                            'Get weather forecast',
+                            'Check weather.com for the 7-day forecast in my location',
+                            Icons.wb_sunny,
+                          ),
+                        ]),
+
+                        _buildCategory('🏢 Business', [
+                          AutomationTemplate(
+                            'LinkedIn Networking',
+                            'Expand professional network',
+                            'Go to linkedin.com and browse people in my industry',
+                            Icons.people,
+                          ),
+                          AutomationTemplate(
+                            'Market Research',
+                            'Research competitors',
+                            'Search for tech startups in AI space and analyze their offerings',
+                            Icons.analytics,
+                          ),
+                        ]),
+
+                        _buildCategory('📚 Learning', [
+                          AutomationTemplate(
+                            'Course Discovery',
+                            'Find online courses',
+                            'Navigate to coursera.org and browse machine learning courses',
+                            Icons.school,
+                          ),
+                          AutomationTemplate(
+                            'Tutorial Search',
+                            'Find programming tutorials',
+                            'Go to youtube.com and search for Flutter app development tutorials',
+                            Icons.play_circle,
+                          ),
+                          AutomationTemplate(
+                            'Documentation',
+                            'Access technical docs',
+                            'Navigate to flutter.dev and browse the latest documentation',
+                            Icons.description,
+                          ),
+                        ]),
+
+                        const SizedBox(height: 100),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategory(String title, List<AutomationTemplate> templates) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Text(
+            title,
+            style: GoogleFonts.inter(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF000000),
+            ),
+          ),
+        ),
+        ...templates.map((template) => _buildTemplateItem(template)),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+
+  Widget _buildTemplateItem(AutomationTemplate template) {
+    return Builder(
+      builder: (context) => Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => _executeTemplate(context, template),
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: const Color(0xFFE5E7EB),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF000000).withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      template.icon,
+                      color: const Color(0xFF000000),
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          template.title,
+                          style: GoogleFonts.inter(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF000000),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          template.description,
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            color: const Color(0xFF6B7280),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    color: const Color(0xFFE5E7EB),
+                    size: 16,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _executeTemplate(BuildContext context, AutomationTemplate template) {
+    Navigator.pop(context);
+    
+    // Activate browser agent if not active
+    if (!widget.agentService.isAgentActive) {
+      widget.agentService.toggleAgent();
+    }
+
+    // Execute the automation task
+    widget.agentService.executeTask(template.command);
+    
+    // Provide haptic feedback
+    HapticFeedback.mediumImpact();
+  }
+}
+
 // Enhanced floating button that can trigger quick menu
 class SmartBrowserAgentToggle extends StatefulWidget {
   final BrowserAgentService agentService;
@@ -453,8 +793,7 @@ class _SmartBrowserAgentToggleState extends State<SmartBrowserAgentToggle>
               margin: const EdgeInsets.only(bottom: 12),
               child: GestureDetector(
                 onTap: () {
-                  final quickMenu = QuickAutomationMenu(agentService: widget.agentService);
-                  quickMenu.showQuickMenu(context);
+                  QuickAutomationMenu.showQuickMenu(context, widget.agentService);
                   HapticFeedback.lightImpact();
                 },
                 child: Container(
