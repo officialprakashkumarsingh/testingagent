@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'models.dart';
+import 'browser_agent_service.dart';
 
 class AgentTool {
   final String name;
@@ -56,11 +57,15 @@ class AgentService extends ChangeNotifier {
   String _status = '';
   Map<String, dynamic> _processingData = {};
 
+  // Browser agent integration
+  final BrowserAgentService _browserAgent = BrowserAgentService();
+
   bool get isAgentMode => _isAgentMode;
   bool get isProcessing => _isProcessing;
   String get status => _status;
   Map<String, dynamic> get processingData => Map.unmodifiable(_processingData);
   AgentRequest? get currentRequest => _currentRequest;
+  BrowserAgentService get browserAgent => _browserAgent;
 
   void toggleAgentMode() {
     _isAgentMode = !_isAgentMode;
@@ -108,6 +113,17 @@ class AgentService extends ChangeNotifier {
         'type': {'type': 'string', 'description': 'Type of analysis: content, products, data', 'default': 'content'},
       },
       execute: _executePageAnalyzer,
+    );
+
+    // Browser automation tool
+    _tools['browser_automation'] = AgentTool(
+      name: 'browser_automation',
+      description: 'Advanced browser automation for complex web interactions',
+      parameters: {
+        'task': {'type': 'string', 'description': 'The automation task to perform'},
+        'url': {'type': 'string', 'description': 'Target website URL (optional)', 'default': ''},
+      },
+      execute: _executeBrowserAutomation,
     );
   }
 
@@ -259,6 +275,30 @@ class AgentService extends ChangeNotifier {
       }
     }
 
+    // Determine if browser automation is needed
+    if (message.contains('automate') || message.contains('automation') ||
+        message.contains('fill form') || message.contains('book') ||
+        message.contains('ticket') || message.contains('reservation') ||
+        message.contains('browse') || message.contains('navigate') ||
+        message.contains('click') || message.contains('interact')) {
+      toolsNeeded.add('browser_automation');
+      
+      final urlPattern = RegExp(r'https?://[^\s]+|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}');
+      final match = urlPattern.firstMatch(userMessage);
+      String targetUrl = '';
+      if (match != null) {
+        targetUrl = match.group(0)!;
+        if (!targetUrl.startsWith('http')) {
+          targetUrl = 'https://$targetUrl';
+        }
+      }
+      
+      toolParams['browser_automation'] = {
+        'task': userMessage,
+        'url': targetUrl,
+      };
+    }
+
     return {
       'intent': _classifyIntent(userMessage),
       'tools_needed': toolsNeeded,
@@ -333,6 +373,29 @@ class AgentService extends ChangeNotifier {
       if (analysisResult['success'] == true) {
         responseBuffer.writeln('📊 **Page Analysis Complete**\n');
         responseBuffer.writeln('${analysisResult['summary'] ?? 'Analysis completed successfully'}\n');
+      }
+    }
+
+    if (toolResults.containsKey('browser_automation')) {
+      final automationResult = toolResults['browser_automation'] as Map<String, dynamic>;
+      if (automationResult['success'] == true) {
+        responseBuffer.writeln('🤖 **Browser Automation Completed**\n');
+        responseBuffer.writeln('✅ Task: ${automationResult['task']}\n');
+        
+        if (automationResult['url']?.isNotEmpty == true) {
+          responseBuffer.writeln('🌐 Website: ${automationResult['url']}\n');
+        }
+        
+        if (automationResult['actions_performed'] != null) {
+          responseBuffer.writeln('⚡ Actions performed: ${automationResult['actions_performed']}\n');
+        }
+        
+        responseBuffer.writeln('📱 The browser agent window is now active and showing real-time automation progress.\n');
+        responseBuffer.writeln('${automationResult['summary'] ?? 'Browser automation completed successfully'}\n');
+      } else {
+        responseBuffer.writeln('❌ **Browser Automation Failed**\n');
+        responseBuffer.writeln('Error: ${automationResult['error'] ?? 'Unknown error occurred'}\n');
+        responseBuffer.writeln('💡 Try activating the browser agent manually using the floating button.\n');
       }
     }
 
@@ -492,6 +555,42 @@ class AgentService extends ChangeNotifier {
       return {
         'success': false,
         'error': e.toString(),
+        'url': url,
+      };
+    }
+  }
+
+  Future<Map<String, dynamic>> _executeBrowserAutomation(Map<String, dynamic> params) async {
+    final task = params['task'] as String;
+    final url = params['url'] as String? ?? '';
+
+    try {
+      // Activate browser agent if not already active
+      if (!_browserAgent.isAgentActive) {
+        _browserAgent.toggleAgent();
+      }
+
+      // Navigate to URL if provided
+      if (url.isNotEmpty) {
+        await _browserAgent.executeTask('Navigate to $url');
+      }
+
+      // Execute the main task
+      await _browserAgent.executeTask(task);
+
+      return {
+        'success': true,
+        'task': task,
+        'url': url,
+        'summary': 'Browser automation task completed successfully',
+        'actions_performed': _browserAgent.currentTask?.actions.length ?? 0,
+        'timestamp': DateTime.now().toIso8601String(),
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'error': e.toString(),
+        'task': task,
         'url': url,
       };
     }

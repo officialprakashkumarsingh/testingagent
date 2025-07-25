@@ -12,6 +12,9 @@ import 'saved_page.dart';
 import 'models.dart';
 import 'auth_service.dart';
 import 'auth_and_profile_pages.dart';
+import 'browser_agent_service.dart';
+import 'browser_agent_widget.dart';
+import 'quick_automation_menu.dart';
 
 /* ----------------------------------------------------------
    MAIN SHELL (Tab Navigation)
@@ -37,6 +40,9 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
   
   // State for temporary chat mode
   bool _isTemporaryChatMode = false;
+
+  // Browser agent service
+  final BrowserAgentService _browserAgentService = BrowserAgentService();
 
   late AnimationController _fabAnimationController;
   late Animation<double> _fabAnimation;
@@ -769,13 +775,29 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
           ),
         ],
       ),
-      body: SlideTransition(
-        position: _slideAnimation,
-        child: ChatPage(
-          key: _chatPageKey, 
-          onBookmark: _bookmarkMessage, 
-          selectedModel: _selectedModel
-        ),
+      body: Stack(
+        children: [
+          SlideTransition(
+            position: _slideAnimation,
+            child: ChatPage(
+              key: _chatPageKey, 
+              onBookmark: _bookmarkMessage, 
+              selectedModel: _selectedModel,
+              browserAgentService: _browserAgentService,
+            ),
+          ),
+          
+          // Smart browser agent toggle button with quick menu
+          SmartBrowserAgentToggle(agentService: _browserAgentService),
+          
+          // Browser agent window
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: BrowserAgentWindow(agentService: _browserAgentService),
+          ),
+        ],
       ),
     );
   }
