@@ -28,7 +28,7 @@ class BrowserAction {
 
 class BrowserTab {
   final String id;
-  final String url;
+  String url;
   final String title;
   final Map<String, dynamic> context;
   InAppWebViewController? controller;
@@ -166,7 +166,8 @@ class BrowserAgentService extends ChangeNotifier {
   void toggleAgent() {
     _isAgentActive = !_isAgentActive;
     if (!_isAgentActive) {
-      _stopCurrentTask();
+      // Gracefully stop any running task when the agent is de-activated
+      stopCurrentTask();
     }
     notifyListeners();
   }
@@ -1386,7 +1387,7 @@ class BrowserAgentService extends ChangeNotifier {
     await _performAdvancedPageAnalysis(action);
   }
 
-  void handleWebViewError(InAppWebViewError error) {
+  void handleWebViewError(WebResourceError error) {
     _logError('WebView error: ${error.description}');
     // Implement smart error recovery
   }

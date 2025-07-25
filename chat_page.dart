@@ -685,6 +685,7 @@ class ChatPageState extends State<ChatPage> {
               onImageUpload: _handleImageUpload,
               uploadedImagePath: _uploadedImagePath,
               onClearImage: _clearUploadedImage,
+              browserAgentService: widget.browserAgentService,
             ),
           ),
         ],
@@ -1133,6 +1134,7 @@ class _InputBar extends StatelessWidget {
     required this.onImageUpload,
     this.uploadedImagePath,
     required this.onClearImage,
+    this.browserAgentService,
   });
 
   final TextEditingController controller;
@@ -1147,6 +1149,7 @@ class _InputBar extends StatelessWidget {
   final VoidCallback onImageUpload;
   final String? uploadedImagePath;
   final VoidCallback onClearImage;
+  final BrowserAgentService? browserAgentService;
 
   @override
   Widget build(BuildContext context) {
@@ -1351,12 +1354,12 @@ class _InputBar extends StatelessWidget {
                         
                         // Browser Agent Icon - positioned after other inputs
                         _AnimatedModeIcon(
-                          isActive: widget.browserAgentService?.isAgentActive ?? false,
+                          isActive: browserAgentService?.isAgentActive ?? false,
                           icon: FontAwesomeIcons.globe,
                           label: 'Browser',
                           onTap: () {
                             HapticFeedback.lightImpact();
-                            widget.browserAgentService?.toggleAgent();
+                            browserAgentService?.toggleAgent();
                           },
                         ),
                       
