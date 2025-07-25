@@ -13,6 +13,7 @@ import 'models.dart';
 import 'character_service.dart';
 import 'agent_service.dart';
 import 'agent_widget.dart';
+import 'browser_agent_service.dart';
 
 /* ----------------------------------------------------------
    CHAT PAGE
@@ -20,7 +21,8 @@ import 'agent_widget.dart';
 class ChatPage extends StatefulWidget {
   final void Function(Message botMessage) onBookmark;
   final String selectedModel;
-  const ChatPage({super.key, required this.onBookmark, required this.selectedModel});
+  final BrowserAgentService? browserAgentService;
+  const ChatPage({super.key, required this.onBookmark, required this.selectedModel, this.browserAgentService});
 
   @override
   State<ChatPage> createState() => ChatPageState();
