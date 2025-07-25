@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'browser_agent_service.dart';
 
 class BrowserAgentWindow extends StatefulWidget {
@@ -25,7 +26,6 @@ class _BrowserAgentWindowState extends State<BrowserAgentWindow>
   late Animation<double> _pulseAnimation;
 
   final TextEditingController _taskController = TextEditingController();
-  final TextEditingController _urlController = TextEditingController();
   bool _isMinimized = false;
 
   @override
@@ -69,7 +69,6 @@ class _BrowserAgentWindowState extends State<BrowserAgentWindow>
     _slideController.dispose();
     _pulseController.dispose();
     _taskController.dispose();
-    _urlController.dispose();
     super.dispose();
   }
 
@@ -101,7 +100,7 @@ class _BrowserAgentWindowState extends State<BrowserAgentWindow>
     return SlideTransition(
       position: _slideAnimation,
       child: Container(
-        height: _isMinimized ? 60 : MediaQuery.of(context).size.height * 0.7,
+        height: _isMinimized ? 60 : MediaQuery.of(context).size.height * 0.75,
         decoration: BoxDecoration(
           color: const Color(0xFFF4F3F0),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
@@ -152,12 +151,16 @@ class _BrowserAgentWindowState extends State<BrowserAgentWindow>
                   decoration: BoxDecoration(
                     color: widget.agentService.isProcessing
                         ? const Color(0xFF10B981)
+                        : widget.agentService.isThinking
+                        ? const Color(0xFFF59E0B)
                         : const Color(0xFF6B7280),
                     shape: BoxShape.circle,
-                    boxShadow: widget.agentService.isProcessing
+                    boxShadow: widget.agentService.isProcessing || widget.agentService.isThinking
                         ? [
                             BoxShadow(
-                              color: const Color(0xFF10B981).withOpacity(0.4),
+                              color: (widget.agentService.isProcessing 
+                                  ? const Color(0xFF10B981) 
+                                  : const Color(0xFFF59E0B)).withOpacity(0.4),
                               blurRadius: 8,
                               spreadRadius: 2,
                             ),
@@ -178,7 +181,7 @@ class _BrowserAgentWindowState extends State<BrowserAgentWindow>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'Browser Agent',
+                  'Smart Browser Agent',
                   style: GoogleFonts.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -239,35 +242,58 @@ class _BrowserAgentWindowState extends State<BrowserAgentWindow>
         children: [
           const SizedBox(width: 16),
           
-          // Current URL
+          // Current tab and domain info
           Expanded(
-            child: Text(
-              widget.agentService.currentUrl.isEmpty 
-                  ? 'Ready to browse...' 
-                  : widget.agentService.currentUrl,
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                color: const Color(0xFF6B7280),
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            child: Row(
+              children: [
+                if (widget.agentService.activeTabs.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF000000).withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      '${widget.agentService.activeTabs.length} tab${widget.agentService.activeTabs.length != 1 ? 's' : ''}',
+                      style: GoogleFonts.inter(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF000000),
+                      ),
+                    ),
+                  ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    widget.agentService.currentUrl.isEmpty 
+                        ? 'AI Agent ready to browse autonomously...' 
+                        : _extractDomain(widget.agentService.currentUrl),
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: const Color(0xFF6B7280),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
           ),
           
-          // Task count indicator
+          // Task completion indicator
           if (widget.agentService.taskHistory.isNotEmpty)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: const Color(0xFF000000).withOpacity(0.1),
+                color: const Color(0xFF10B981).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
-                '${widget.agentService.taskHistory.length} tasks',
+                '✓ ${widget.agentService.taskHistory.length} completed',
                 style: GoogleFonts.inter(
                   fontSize: 10,
                   fontWeight: FontWeight.w500,
-                  color: const Color(0xFF000000),
+                  color: const Color(0xFF10B981),
                 ),
               ),
             ),
@@ -289,51 +315,7 @@ class _BrowserAgentWindowState extends State<BrowserAgentWindow>
       ),
       child: Column(
         children: [
-          // URL input
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE5E7EB)),
-                  ),
-                  child: TextField(
-                    controller: _urlController,
-                    style: GoogleFonts.inter(fontSize: 14),
-                    decoration: InputDecoration(
-                      hintText: 'Enter website URL...',
-                      hintStyle: GoogleFonts.inter(
-                        color: const Color(0xFF9CA3AF),
-                      ),
-                      prefixIcon: const Icon(
-                        Icons.language,
-                        color: Color(0xFF6B7280),
-                        size: 18,
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                    ),
-                    onSubmitted: (url) => _navigateToUrl(url),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              _buildActionButton(
-                icon: Icons.navigation,
-                onPressed: () => _navigateToUrl(_urlController.text),
-                tooltip: 'Navigate',
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 12),
-          
-          // Task input
+          // Smart task input with AI suggestions
           Row(
             children: [
               Expanded(
@@ -346,15 +328,19 @@ class _BrowserAgentWindowState extends State<BrowserAgentWindow>
                   child: TextField(
                     controller: _taskController,
                     style: GoogleFonts.inter(fontSize: 14),
+                    maxLines: null,
                     decoration: InputDecoration(
-                      hintText: 'Tell the agent what to do...',
+                      hintText: 'Tell me what you need done. I\'ll think, plan, and execute autonomously...',
                       hintStyle: GoogleFonts.inter(
                         color: const Color(0xFF9CA3AF),
                       ),
-                      prefixIcon: const Icon(
-                        Icons.auto_awesome,
-                        color: Color(0xFF6B7280),
-                        size: 18,
+                      prefixIcon: const Padding(
+                        padding: EdgeInsets.all(12.0),
+                        child: FaIcon(
+                          FontAwesomeIcons.brain,
+                          color: Color(0xFF6B7280),
+                          size: 16,
+                        ),
                       ),
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(
@@ -368,11 +354,13 @@ class _BrowserAgentWindowState extends State<BrowserAgentWindow>
               ),
               const SizedBox(width: 8),
               _buildActionButton(
-                icon: Icons.play_arrow,
+                icon: widget.agentService.isProcessing 
+                    ? Icons.stop 
+                    : Icons.rocket_launch,
                 onPressed: widget.agentService.isProcessing 
-                    ? null 
+                    ? () => widget.agentService.stopCurrentTask()
                     : () => _executeTask(_taskController.text),
-                tooltip: 'Execute Task',
+                tooltip: widget.agentService.isProcessing ? 'Stop Task' : 'Execute Task',
                 isPrimary: true,
               ),
             ],
@@ -380,24 +368,54 @@ class _BrowserAgentWindowState extends State<BrowserAgentWindow>
           
           const SizedBox(height: 12),
           
-          // Quick actions
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _buildQuickAction('Screenshot', Icons.camera_alt, () {
-                  _executeTask('Take a screenshot');
-                }),
-                _buildQuickAction('Analyze Page', Icons.analytics, () {
-                  _executeTask('Analyze this page');
-                }),
-                _buildQuickAction('Find Forms', Icons.description, () {
-                  _executeTask('Find and analyze forms on this page');
-                }),
-                _buildQuickAction('Scroll Down', Icons.keyboard_arrow_down, () {
-                  _executeTask('Scroll down');
-                }),
-              ],
+          // Advanced capabilities showcase
+          _buildCapabilitiesRow(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCapabilitiesRow() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _buildCapabilityChip('🧠 AI Planning', 'Autonomous decision making'),
+          _buildCapabilityChip('📑 Multi-step Tasks', 'Complex workflows'),
+          _buildCapabilityChip('🔄 Smart Recovery', 'Auto error handling'),
+          _buildCapabilityChip('📊 DOM Analysis', 'Advanced element detection'),
+          _buildCapabilityChip('📱 Multi-tab', 'Parallel browsing'),
+          _buildCapabilityChip('🎯 Goal-oriented', 'Results focused'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCapabilityChip(String title, String subtitle) {
+    return Container(
+      margin: const EdgeInsets.only(right: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF374151),
+            ),
+          ),
+          Text(
+            subtitle,
+            style: GoogleFonts.inter(
+              fontSize: 9,
+              color: const Color(0xFF6B7280),
             ),
           ),
         ],
@@ -431,43 +449,6 @@ class _BrowserAgentWindowState extends State<BrowserAgentWindow>
     );
   }
 
-  Widget _buildQuickAction(String label, IconData icon, VoidCallback onPressed) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFFE5E7EB)),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                size: 14,
-                color: const Color(0xFF6B7280),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFF374151),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildBrowserView() {
     return Container(
       decoration: const BoxDecoration(
@@ -476,60 +457,118 @@ class _BrowserAgentWindowState extends State<BrowserAgentWindow>
       ),
       child: ClipRRect(
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
-        child: InAppWebView(
-          initialUrlRequest: URLRequest(
-            url: WebUri('https://www.google.com'),
-          ),
-          initialSettings: InAppWebViewSettings(
-            useShouldOverrideUrlLoading: false,
-            mediaPlaybackRequiresUserGesture: false,
-            allowsInlineMediaPlayback: true,
-            iframeAllow: "camera; microphone",
-            iframeAllowFullscreen: true,
-          ),
-          onWebViewCreated: (controller) {
-            _webViewController = controller;
-            widget.agentService.setWebViewController(controller);
-          },
-          onLoadStart: (controller, url) {
-            if (mounted) {
-              setState(() {});
-            }
-          },
-          onProgressChanged: (controller, progress) {
-            if (mounted) {
-              setState(() {});
-            }
-          },
-          onLoadStop: (controller, url) async {
-            if (mounted) {
-              setState(() {});
-            }
-          },
-          onReceivedError: (controller, request, error) {
-            print('WebView error: ${error.description}');
-          },
-          onConsoleMessage: (controller, consoleMessage) {
-            print('Console: ${consoleMessage.message}');
-          },
+        child: Stack(
+          children: [
+            // Main webview
+            InAppWebView(
+              initialUrlRequest: URLRequest(
+                url: WebUri('https://www.google.com'),
+              ),
+              initialSettings: InAppWebViewSettings(
+                useShouldOverrideUrlLoading: false,
+                mediaPlaybackRequiresUserGesture: false,
+                allowsInlineMediaPlayback: true,
+                iframeAllow: "camera; microphone",
+                iframeAllowFullscreen: true,
+                // Disable user scrolling - agent controlled only
+                disableVerticalScroll: true,
+                disableHorizontalScroll: true,
+                // Enhanced security and automation support
+                javaScriptEnabled: true,
+                domStorageEnabled: true,
+                allowsBackForwardNavigationGestures: false,
+              ),
+              onWebViewCreated: (controller) {
+                _webViewController = controller;
+                widget.agentService.setWebViewController(controller);
+              },
+              onLoadStart: (controller, url) {
+                if (mounted) {
+                  setState(() {});
+                }
+              },
+              onProgressChanged: (controller, progress) {
+                if (mounted) {
+                  setState(() {});
+                }
+              },
+              onLoadStop: (controller, url) async {
+                if (mounted) {
+                  setState(() {});
+                  // Auto-analyze page for the agent
+                  widget.agentService.analyzeCurrentPage();
+                }
+              },
+              onReceivedError: (controller, request, error) {
+                print('WebView error: ${error.description}');
+                widget.agentService.handleWebViewError(error);
+              },
+              onConsoleMessage: (controller, consoleMessage) {
+                print('Console: ${consoleMessage.message}');
+              },
+              // Disable context menu to prevent user interaction
+              onCreateWindow: (controller, createWindowAction) async {
+                // Handle new tab creation by agent
+                return widget.agentService.handleNewTab(createWindowAction);
+              },
+            ),
+            
+            // Agent thinking overlay
+            if (widget.agentService.isThinking)
+              Container(
+                color: Colors.black.withOpacity(0.3),
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF000000)),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          widget.agentService.thinkingStatus,
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF000000),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
   }
 
-  void _navigateToUrl(String url) {
-    if (url.trim().isEmpty) return;
-    
-    String formattedUrl = url.trim();
-    if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
-      formattedUrl = 'https://$formattedUrl';
+  String _extractDomain(String url) {
+    try {
+      final uri = Uri.parse(url);
+      return uri.host;
+    } catch (e) {
+      return url;
     }
-    
-    _webViewController?.loadUrl(
-      urlRequest: URLRequest(url: WebUri(formattedUrl)),
-    );
-    
-    _urlController.clear();
   }
 
   void _executeTask(String task) {
@@ -543,7 +582,7 @@ class _BrowserAgentWindowState extends State<BrowserAgentWindow>
   }
 }
 
-// Floating Agent Toggle Button
+// Enhanced Browser Agent Toggle Button
 class BrowserAgentToggle extends StatefulWidget {
   final BrowserAgentService agentService;
 
@@ -635,12 +674,12 @@ class _BrowserAgentToggleState extends State<BrowserAgentToggle>
                 child: Stack(
                   children: [
                     Center(
-                      child: Icon(
-                        Icons.smart_toy_outlined,
+                      child: FaIcon(
+                        FontAwesomeIcons.globe,
                         color: widget.agentService.isAgentActive
                             ? Colors.white
                             : const Color(0xFF6B7280),
-                        size: 28,
+                        size: 26,
                       ),
                     ),
                     if (widget.agentService.isProcessing)
@@ -656,6 +695,26 @@ class _BrowserAgentToggleState extends State<BrowserAgentToggle>
                             boxShadow: [
                               BoxShadow(
                                 color: const Color(0xFF10B981).withOpacity(0.6),
+                                blurRadius: 6,
+                                spreadRadius: 1,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    if (widget.agentService.isThinking)
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: Container(
+                          width: 12,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF59E0B),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFFF59E0B).withOpacity(0.6),
                                 blurRadius: 6,
                                 spreadRadius: 1,
                               ),

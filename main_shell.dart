@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -14,7 +15,7 @@ import 'auth_service.dart';
 import 'auth_and_profile_pages.dart';
 import 'browser_agent_service.dart';
 import 'browser_agent_widget.dart';
-import 'quick_automation_menu.dart';
+
 
 /* ----------------------------------------------------------
    MAIN SHELL (Tab Navigation)
@@ -787,9 +788,8 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
             ),
           ),
           
-          // Smart browser agent toggle button with quick menu
-          SmartBrowserAgentToggle(agentService: _browserAgentService),
-          
+
+
           // Browser agent window
           Positioned(
             left: 0,
