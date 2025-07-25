@@ -1346,6 +1346,19 @@ class _InputBar extends StatelessWidget {
                             }
                           },
                         ),
+                        
+                        const SizedBox(width: 12),
+                        
+                        // Browser Agent Icon - positioned after other inputs
+                        _AnimatedModeIcon(
+                          isActive: widget.browserAgentService?.isAgentActive ?? false,
+                          icon: FontAwesomeIcons.globe,
+                          label: 'Browser',
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            widget.browserAgentService?.toggleAgent();
+                          },
+                        ),
                       
                       const Spacer(),
                     ],
